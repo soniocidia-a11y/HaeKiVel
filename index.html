@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="mobile-web-app-capable" content="yes" />
-<title>우리의 여행 · Hae Ki Vel</title>
+<title>Hae Ki Vel · 우리의 여행</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -19,7 +19,7 @@
 <!-- Firebase SDK (modular v10) -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
   // ⚠️ 아래 firebaseConfig를 본인 Firebase 프로젝트 값으로 교체하세요
   const firebaseConfig = {
@@ -27,8 +27,8 @@
     authDomain: "travel-152ff.firebaseapp.com",
     projectId: "travel-152ff",
     storageBucket: "travel-152ff.firebasestorage.app",
-  messagingSenderId: "849876948302",
-  appId: "1:849876948302:web:4936491a93bd8ffca27a1f"
+    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+    appId: "YOUR_APP_ID"
   };
 
   const app = initializeApp(firebaseConfig);
@@ -40,12 +40,15 @@
   window.fbGetDoc = getDoc;
   window.fbSetDoc = setDoc;
   window.fbOnSnapshot = onSnapshot;
+  window.fbCollection = collection;
+  window.fbGetDocs = getDocs;
+  window.fbDeleteDoc = deleteDoc;
   window.fbReady = true;
   window.dispatchEvent(new Event('firebase-ready'));
 </script>
 
 <!-- PWA manifest (inline via data URI) -->
-<link rel="manifest" href='data:application/manifest+json;charset=utf-8,{"name":"우리의 여행","short_name":"Hae Ki Vel","start_url":".","display":"standalone","background_color":"%23faf9f7","theme_color":"%23ff5a3d","icons":[{"src":"data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 512 512%22><rect width=%22512%22 height=%22512%22 rx=%22112%22 fill=%22%23ff5a3d%22/><text x=%22256%22 y=%22340%22 font-size=%22280%22 text-anchor=%22middle%22 fill=%22white%22 font-family=%22serif%22 font-style=%22italic%22>V</text></svg>","sizes":"512x512","type":"image/svg+xml"}]}' />
+<link rel="manifest" href='data:application/manifest+json;charset=utf-8,{"name":"Hae Ki Vel","short_name":"Hae Ki Vel","start_url":".","display":"standalone","background_color":"%23faf9f7","theme_color":"%23ff5a3d","icons":[{"src":"data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 512 512%22><rect width=%22512%22 height=%22512%22 rx=%22112%22 fill=%22%23ff5a3d%22/><text x=%22256%22 y=%22340%22 font-size=%22280%22 text-anchor=%22middle%22 fill=%22white%22 font-family=%22serif%22 font-style=%22italic%22>H</text></svg>","sizes":"512x512","type":"image/svg+xml"}]}' />
 
 <style>
   :root {
@@ -128,6 +131,284 @@
     background: var(--bg);
     z-index: 2;
   }
+
+  /* ===== TRIP LIST SCREEN ===== */
+  .trip-list-screen {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    z-index: 100;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: 520px;
+    margin: 0 auto;
+  }
+
+  .trip-list-header {
+    padding: 32px 24px 20px;
+    padding-top: calc(32px + env(safe-area-inset-top));
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 16px;
+  }
+
+  .trip-list-title {
+    flex: 1;
+  }
+
+  .trip-list-greeting {
+    font-family: 'Geist', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--ink-soft);
+    margin-top: 4px;
+    letter-spacing: -0.01em;
+  }
+
+  .trip-list-new-btn {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 12px 18px;
+    border-radius: 999px;
+    font-family: 'Geist', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(255, 90, 61, 0.3);
+    transition: all 0.15s var(--ease);
+    letter-spacing: -0.01em;
+    flex-shrink: 0;
+  }
+  .trip-list-new-btn:active { transform: scale(0.95); }
+
+  .trip-list-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .trip-list-logout-btn {
+    background: var(--bg-soft);
+    border: none;
+    color: var(--ink-soft);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s var(--ease);
+  }
+  .trip-list-logout-btn:active {
+    transform: scale(0.92);
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+
+  .trip-list-content {
+    padding: 8px 20px 100px;
+  }
+
+  .trip-list-section-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ink-mute);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 14px 4px 10px;
+  }
+
+  .trip-list-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 18px 20px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    transition: all 0.15s var(--ease);
+    box-shadow: var(--shadow-sm);
+    position: relative;
+    overflow: hidden;
+  }
+  .trip-list-card:active { transform: scale(0.99); }
+
+  .trip-list-card.upcoming::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--lemon-deep));
+  }
+
+  .trip-list-card.ongoing::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--mint-deep);
+  }
+
+  .trip-list-card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+    gap: 10px;
+  }
+
+  .trip-list-card-name {
+    font-family: 'Instrument Serif', serif;
+    font-style: italic;
+    font-size: 24px;
+    font-weight: 400;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    flex: 1;
+    min-width: 0;
+    word-break: break-word;
+  }
+
+  .trip-list-card-status {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 4px 9px;
+    border-radius: 999px;
+    letter-spacing: 0.05em;
+    flex-shrink: 0;
+    text-transform: uppercase;
+  }
+  .trip-list-card-status.ongoing { background: var(--mint); color: var(--mint-deep); }
+  .trip-list-card-status.upcoming { background: var(--lemon); color: var(--lemon-deep); }
+  .trip-list-card-status.past { background: var(--bg-soft); color: var(--ink-mute); }
+
+  .trip-list-card-dates {
+    font-family: 'Geist', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink-soft);
+    letter-spacing: -0.01em;
+  }
+
+  .trip-list-card-meta {
+    display: flex;
+    gap: 14px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--line);
+    font-size: 12px;
+    color: var(--ink-mute);
+    align-items: center;
+  }
+
+  .trip-list-card-code {
+    font-family: 'Geist Mono', monospace;
+    font-weight: 500;
+  }
+
+  .trip-list-card-delete {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: var(--ink-mute);
+    font-size: 16px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 999px;
+    transition: all 0.15s;
+  }
+  .trip-list-card-delete:active {
+    color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  .trip-list-empty {
+    text-align: center;
+    padding: 60px 32px 40px;
+  }
+
+  .trip-list-empty-emoji {
+    font-size: 56px;
+    display: block;
+    margin-bottom: 16px;
+  }
+
+  .trip-list-empty-title {
+    font-family: 'Instrument Serif', serif;
+    font-style: italic;
+    font-size: 26px;
+    color: var(--ink);
+    margin-bottom: 6px;
+    letter-spacing: -0.02em;
+  }
+
+  .trip-list-empty-desc {
+    font-size: 14px;
+    color: var(--ink-mute);
+    margin-bottom: 24px;
+  }
+
+  .trip-list-empty-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .trip-list-empty-actions .setup-btn {
+    width: 100%;
+    max-width: 280px;
+  }
+
+  /* ===== BACK TO LIST BTN (in app header) ===== */
+  .back-to-list-btn {
+    background: var(--bg-soft);
+    border: none;
+    color: var(--ink-soft);
+    font-family: 'Geist', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 12px 6px 10px;
+    border-radius: 999px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.15s var(--ease);
+    letter-spacing: -0.01em;
+  }
+  .back-to-list-btn:active { transform: scale(0.96); background: var(--line-strong); }
+  .back-to-list-btn span { font-size: 14px; line-height: 1; }
+
+  /* ===== SETUP BACK BTN ===== */
+  .setup-back {
+    position: absolute;
+    top: calc(20px + env(safe-area-inset-top));
+    left: 20px;
+    background: var(--bg-soft);
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    font-size: 20px;
+    color: var(--ink);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s var(--ease);
+    z-index: 10;
+  }
+  .setup-back:active { transform: scale(0.92); }
 
   /* ===== SETUP SCREEN ===== */
   .setup {
@@ -254,6 +535,19 @@
     height: 1px;
     background: var(--line-strong);
     max-width: 60px;
+  }
+
+  .setup-hint {
+    max-width: 340px;
+    margin: 4px auto 20px;
+    padding: 12px 16px;
+    background: var(--lemon);
+    border-radius: var(--radius);
+    font-size: 12px;
+    line-height: 1.55;
+    color: var(--lemon-deep);
+    font-weight: 500;
+    text-align: center;
   }
 
   /* ===== HEADER ===== */
@@ -1322,7 +1616,9 @@
 <div id="app" style="display:none;">
   <header>
     <div class="header-top">
-      <span class="trip-label"><span class="trip-label-dot"></span>Hae Ki Vel · <span id="userName"></span></span>
+      <button class="back-to-list-btn" onclick="backToList()">
+        <span>←</span> 목록
+      </button>
       <span class="sync-indicator">
         <span class="sync-dot" id="syncDot"></span>
         <span id="syncText">synced</span>
@@ -1332,7 +1628,7 @@
     <div class="trip-meta">
       <span id="tripDates">—</span>
       <span class="dot"></span>
-      <span class="trip-code" id="tripCode" onclick="copyTripCode()">CODE</span>
+      <span id="tripMembers">—</span>
     </div>
   </header>
 
@@ -1377,29 +1673,46 @@
   <button class="fab" id="fab">+</button>
 </div>
 
-<!-- SETUP SCREEN -->
+<!-- SETUP SCREEN (LOGIN) -->
 <div class="setup" id="setupScreen">
+  <button class="setup-back" id="setupBackBtn" onclick="showTripList()" style="display:none;">←</button>
   <div class="setup-logo serif">Hae Ki Vel</div>
-  <div class="setup-tagline">Plan together · Travel together</div>
+  <div class="setup-tagline">Our travel, together</div>
 
   <div id="setupStep1">
-    <h2>둘의 여행을 시작해볼까요?</h2>
+    <h2>둘만의 공간에 들어가요</h2>
     <input type="text" id="myName" placeholder="내 이름" maxlength="12" autocomplete="off" />
-    <br />
-    <button class="setup-btn" onclick="goToStep2()">계속</button>
+    <input type="date" id="anniversary" placeholder="사귄 날짜" autocomplete="off" />
+    <div class="setup-hint">사귄 날짜는 둘만의 비밀번호예요 🔐<br/>같은 날짜를 입력한 사람끼리 데이터가 공유됩니다.</div>
+    <button class="setup-btn" onclick="loginCouple()">들어가기</button>
   </div>
 
   <div id="setupStep2" style="display:none;">
-    <h2 id="step2Title">여행을 만들거나, 초대 코드를 입력하세요</h2>
+    <h2 id="step2Title">새 여행을 만들어요</h2>
     <input type="text" id="tripName" placeholder="여행 이름 (예: 제주도 3박 4일)" maxlength="30" autocomplete="off" />
-    <div class="form-row" style="max-width:320px; width:100%;">
+    <div class="form-row" style="max-width:340px; width:100%;">
       <input type="date" id="startDate" style="max-width:none;" />
       <input type="date" id="endDate" style="max-width:none;" />
     </div>
     <button class="setup-btn" onclick="createTrip()">새 여행 만들기</button>
-    <div class="setup-divider">또는</div>
-    <input type="text" id="joinCode" placeholder="초대 코드 입력" maxlength="8" style="text-transform:uppercase; letter-spacing:0.2em; text-align:center;" autocomplete="off" />
-    <button class="setup-btn" style="background:var(--paper); color:var(--ink); border:1px solid var(--ink);" onclick="joinTrip()">여행 참여하기</button>
+  </div>
+</div>
+
+<!-- TRIP LIST SCREEN -->
+<div class="trip-list-screen" id="tripListScreen" style="display:none;">
+  <div class="trip-list-header">
+    <div class="trip-list-title">
+      <div class="setup-logo serif" style="font-size:42px;">Hae Ki Vel</div>
+      <div class="trip-list-greeting">안녕, <span id="tripListUserName"></span> 👋</div>
+    </div>
+    <div class="trip-list-actions">
+      <button class="trip-list-new-btn" onclick="newTripFromList()">+ 새 여행</button>
+      <button class="trip-list-logout-btn" onclick="logoutCouple()" title="로그아웃">⏻</button>
+    </div>
+  </div>
+
+  <div class="trip-list-content" id="tripListContent">
+    <!-- 여행 카드들이 여기 렌더됨 -->
   </div>
 </div>
 
@@ -1513,9 +1826,10 @@
    STATE & STORAGE
    ========================================================= */
 const state = {
-  tripId: null,
-  tripCode: null,
+  coupleId: null,
   userName: null,
+  anniversary: null,
+  tripId: null,
   trip: null,
   selectedDay: null,
   map: null,
@@ -1526,7 +1840,7 @@ const state = {
   lastSyncData: null,
 };
 
-const DEVICE_KEY = 'Hae Ki Vel_device';
+const DEVICE_KEY = 'voyage_device';
 function getDeviceId() {
   let d = localStorage.getItem(DEVICE_KEY);
   if (!d) {
@@ -1537,32 +1851,103 @@ function getDeviceId() {
 }
 
 function saveLocal() {
-  localStorage.setItem('Hae Ki Vel_session', JSON.stringify({
-    tripId: state.tripId,
-    tripCode: state.tripCode,
+  localStorage.setItem('hkv_session', JSON.stringify({
+    coupleId: state.coupleId,
     userName: state.userName,
+    anniversary: state.anniversary,
+    tripId: state.tripId,
   }));
 }
 
 function loadLocal() {
   try {
-    return JSON.parse(localStorage.getItem('Hae Ki Vel_session') || 'null');
+    return JSON.parse(localStorage.getItem('hkv_session') || 'null');
   } catch { return null; }
 }
 
 function clearLocal() {
-  localStorage.removeItem('Hae Ki Vel_session');
+  localStorage.removeItem('hkv_session');
+}
+
+function clearTripFromSession() {
+  // 세션은 유지하되, 현재 열려있는 trip만 비움
+  const session = loadLocal();
+  if (session) {
+    delete session.tripId;
+    localStorage.setItem('hkv_session', JSON.stringify(session));
+  }
+}
+
+function fullLogout() {
+  // 완전 로그아웃 (다른 커플로 전환할 때만 사용)
+  localStorage.removeItem('hkv_session');
 }
 
 /* =========================================================
-   FIREBASE FIRESTORE STORAGE
-   Real-time sync between partners via Firestore
+   COUPLE AUTH — 사귄 날짜로 인증
+   ========================================================= */
+function makeCoupleId(anniversary) {
+  // anniversary 예: "2024-03-15" → "couple_20240315"
+  return 'couple_' + anniversary.replace(/-/g, '');
+}
+
+async function loginCouple() {
+  const name = document.getElementById('myName').value.trim();
+  const anniv = document.getElementById('anniversary').value;
+  if (!name) { toast('이름을 입력해주세요'); return; }
+  if (!anniv) { toast('사귄 날짜를 입력해주세요'); return; }
+
+  state.userName = name;
+  state.anniversary = anniv;
+  state.coupleId = makeCoupleId(anniv);
+
+  // 커플 문서 확인 (없으면 생성)
+  try {
+    const ref = window.fbDoc(window.fbDb, 'couples', state.coupleId);
+    const snap = await window.fbGetDoc(ref);
+    if (!snap.exists()) {
+      // 새 커플 — 첫 멤버로 생성
+      await window.fbSetDoc(ref, {
+        anniversary: anniv,
+        members: [name],
+        createdAt: Date.now(),
+      });
+    } else {
+      // 기존 커플 — 멤버 추가 (같은 이름이면 중복 안 됨)
+      const couple = snap.data();
+      if (!couple.members.includes(name)) {
+        couple.members.push(name);
+        await window.fbSetDoc(ref, couple);
+      }
+    }
+  } catch (e) {
+    console.error('Login failed:', e);
+    toast('로그인 실패: ' + e.message);
+    return;
+  }
+
+  saveLocal();
+  await goToTripList();
+}
+
+async function getCoupleMembers() {
+  try {
+    const ref = window.fbDoc(window.fbDb, 'couples', state.coupleId);
+    const snap = await window.fbGetDoc(ref);
+    return snap.exists() ? (snap.data().members || []) : [];
+  } catch { return []; }
+}
+
+/* =========================================================
+   FIRESTORE — TRIP CRUD
+   couples/{coupleId}/trips/{tripId}
    ========================================================= */
 let unsubscribeSnapshot = null;
+let unsubscribeList = null;
 
-async function loadTrip(code) {
+async function loadTrip(tripId) {
   try {
-    const ref = window.fbDoc(window.fbDb, 'trips', code);
+    const ref = window.fbDoc(window.fbDb, 'couples', state.coupleId, 'trips', tripId);
     const snap = await window.fbGetDoc(ref);
     return snap.exists() ? snap.data() : null;
   } catch (e) {
@@ -1576,7 +1961,7 @@ async function saveTrip(trip) {
   try {
     trip.updatedAt = Date.now();
     trip.updatedBy = state.userName;
-    const ref = window.fbDoc(window.fbDb, 'trips', trip.code);
+    const ref = window.fbDoc(window.fbDb, 'couples', state.coupleId, 'trips', trip.id);
     await window.fbSetDoc(ref, trip);
     state.trip = trip;
     state.lastSyncData = JSON.stringify(trip);
@@ -1590,13 +1975,26 @@ async function saveTrip(trip) {
   }
 }
 
-// 실시간 구독 시작 — 상대방이 변경하면 자동 반영
-function subscribeToTrip(code) {
+async function deleteTripDoc(tripId) {
+  try {
+    const ref = window.fbDoc(window.fbDb, 'couples', state.coupleId, 'trips', tripId);
+    // setDoc with merge is fine, but for delete we need deleteDoc — use updateDoc with marker
+    // 대신 trip 자체에 deleted 플래그 추가하는 방식 → 나중에 구현, 지금은 setDoc으로 빈 마커
+    await window.fbSetDoc(ref, { id: tripId, deleted: true, deletedAt: Date.now() });
+    return true;
+  } catch (e) {
+    console.error('deleteTripDoc failed:', e);
+    return false;
+  }
+}
+
+function subscribeToTrip(tripId) {
   if (unsubscribeSnapshot) unsubscribeSnapshot();
-  const ref = window.fbDoc(window.fbDb, 'trips', code);
+  const ref = window.fbDoc(window.fbDb, 'couples', state.coupleId, 'trips', tripId);
   unsubscribeSnapshot = window.fbOnSnapshot(ref, (snap) => {
     if (!snap.exists()) return;
     const trip = snap.data();
+    if (trip.deleted) return;
     const serialized = JSON.stringify(trip);
     if (serialized !== state.lastSyncData) {
       state.trip = trip;
@@ -1610,30 +2008,45 @@ function subscribeToTrip(code) {
   });
 }
 
-function setSync(status) {
-  const dot = document.getElementById('syncDot');
-  const text = document.getElementById('syncText');
-  if (!dot) return;
-  dot.classList.toggle('syncing', status === 'syncing');
-  text.textContent = status === 'syncing' ? 'syncing…' : status === 'error' ? 'offline' : 'synced';
+async function listAllTrips() {
+  try {
+    const colRef = window.fbCollection(window.fbDb, 'couples', state.coupleId, 'trips');
+    const snap = await window.fbGetDocs(colRef);
+    const trips = [];
+    snap.forEach(doc => {
+      const data = doc.data();
+      if (!data.deleted) trips.push(data);
+    });
+    // 시작일 역순 (최신 여행이 위)
+    trips.sort((a, b) => (b.start || '').localeCompare(a.start || ''));
+    return trips;
+  } catch (e) {
+    console.error('listAllTrips failed:', e);
+    return [];
+  }
+}
+
+function subscribeToTripList(callback) {
+  if (unsubscribeList) unsubscribeList();
+  const colRef = window.fbCollection(window.fbDb, 'couples', state.coupleId, 'trips');
+  unsubscribeList = window.fbOnSnapshot(colRef, (snap) => {
+    const trips = [];
+    snap.forEach(doc => {
+      const data = doc.data();
+      if (!data.deleted) trips.push(data);
+    });
+    trips.sort((a, b) => (b.start || '').localeCompare(a.start || ''));
+    callback(trips);
+  }, (err) => {
+    console.error('List subscribe error:', err);
+  });
 }
 
 /* =========================================================
-   SETUP FLOW
+   TRIP CREATION
    ========================================================= */
-function goToStep2() {
-  const name = document.getElementById('myName').value.trim();
-  if (!name) { toast('이름을 입력해주세요'); return; }
-  state.userName = name;
-  document.getElementById('setupStep1').style.display = 'none';
-  document.getElementById('setupStep2').style.display = 'block';
-}
-
-function generateCode() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let c = '';
-  for (let i = 0; i < 6; i++) c += chars[Math.floor(Math.random() * chars.length)];
-  return c;
+function generateTripId() {
+  return 't_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
 }
 
 async function createTrip() {
@@ -1644,7 +2057,7 @@ async function createTrip() {
   if (!start || !end) { toast('날짜를 선택해주세요'); return; }
   if (start > end) { toast('종료일이 시작일보다 빨라요'); return; }
 
-  const code = generateCode();
+  const id = generateTripId();
   const days = [];
   let cur = new Date(start);
   const endD = new Date(end);
@@ -1653,53 +2066,204 @@ async function createTrip() {
     cur.setDate(cur.getDate() + 1);
   }
 
+  const members = await getCoupleMembers();
   const trip = {
-    code, name, start, end, days,
+    id, name, start, end, days,
     expenses: [],
-    members: [state.userName],
+    members,
     createdAt: Date.now(),
+    createdBy: state.userName,
   };
 
   const ok = await saveTrip(trip);
   if (!ok) return;
 
-  state.tripId = code;
-  state.tripCode = code;
+  state.tripId = id;
   saveLocal();
   enterApp();
 }
 
-async function joinTrip() {
-  const code = document.getElementById('joinCode').value.trim().toUpperCase();
-  if (code.length < 4) { toast('코드가 너무 짧아요'); return; }
-
-  const trip = await loadTrip(code);
-  if (!trip) { toast('여행을 찾을 수 없어요'); return; }
-
-  if (!trip.members.includes(state.userName)) {
-    trip.members.push(state.userName);
-    await saveTrip(trip);
-  }
-
-  state.tripId = code;
-  state.tripCode = code;
-  saveLocal();
-  enterApp();
-}
-
+/* =========================================================
+   APP NAVIGATION
+   ========================================================= */
 async function enterApp() {
   document.getElementById('setupScreen').style.display = 'none';
+  document.getElementById('tripListScreen').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
-  const trip = await loadTrip(state.tripCode);
+
+  if (unsubscribeList) { unsubscribeList(); unsubscribeList = null; }
+
+  const trip = await loadTrip(state.tripId);
   if (trip) {
     state.trip = trip;
     state.lastSyncData = JSON.stringify(trip);
-  }
-  if (state.trip && state.trip.days.length > 0) {
-    state.selectedDay = 0;
+    // 멤버 동기화 — 내가 빠져있으면 추가
+    if (!trip.members.includes(state.userName)) {
+      trip.members.push(state.userName);
+      await saveTrip(trip);
+    }
+    if (trip.days.length > 0) state.selectedDay = 0;
   }
   render();
-  subscribeToTrip(state.tripCode);
+  subscribeToTrip(state.tripId);
+}
+
+async function goToTripList() {
+  // 현재 trip 구독 해제
+  if (unsubscribeSnapshot) { unsubscribeSnapshot(); unsubscribeSnapshot = null; }
+  state.trip = null;
+  state.tripId = null;
+  state.lastSyncData = null;
+  clearTripFromSession();
+
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('setupScreen').style.display = 'none';
+  document.getElementById('tripListScreen').style.display = 'block';
+
+  await renderTripList();
+}
+
+function showTripList() {
+  goToTripList();
+}
+
+function backToList() {
+  goToTripList();
+}
+
+async function renderTripList() {
+  document.getElementById('tripListUserName').textContent = state.userName || '';
+
+  const content = document.getElementById('tripListContent');
+  content.innerHTML = '<div class="trip-list-empty"><span class="trip-list-empty-emoji">⏳</span><div class="trip-list-empty-title">불러오는 중</div></div>';
+
+  // 실시간 구독 시작
+  subscribeToTripList((trips) => {
+    renderTripCards(trips);
+  });
+}
+
+function renderTripCards(trips) {
+  const content = document.getElementById('tripListContent');
+  content.innerHTML = '';
+
+  if (trips.length === 0) {
+    content.innerHTML = `
+      <div class="trip-list-empty">
+        <span class="trip-list-empty-emoji">✈️</span>
+        <div class="trip-list-empty-title">아직 여행이 없어요</div>
+        <div class="trip-list-empty-desc">첫 여행을 함께 계획해봐요</div>
+        <div class="trip-list-empty-actions">
+          <button class="setup-btn" onclick="newTripFromList()">새 여행 만들기</button>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  // 분류
+  const today = new Date().toISOString().slice(0, 10);
+  const ongoing = [], upcoming = [], past = [];
+  trips.forEach(t => {
+    if (t.start <= today && today <= t.end) ongoing.push(t);
+    else if (t.start > today) upcoming.push(t);
+    else past.push(t);
+  });
+
+  const sections = [
+    { label: '여행 중', items: ongoing, status: 'ongoing' },
+    { label: '다가오는 여행', items: upcoming, status: 'upcoming' },
+    { label: '지난 여행', items: past, status: 'past' },
+  ];
+
+  sections.forEach(section => {
+    if (section.items.length === 0) return;
+    const label = document.createElement('div');
+    label.className = 'trip-list-section-label';
+    label.textContent = section.label;
+    content.appendChild(label);
+
+    section.items.forEach(t => {
+      const card = document.createElement('div');
+      card.className = 'trip-list-card ' + section.status;
+      const placeCount = (t.days || []).reduce((s, d) => s + ((d.places || []).length), 0);
+      const expenseCount = (t.expenses || []).length;
+      card.innerHTML = `
+        <div class="trip-list-card-head">
+          <div class="trip-list-card-name">${escapeHtml(t.name)}</div>
+          <span class="trip-list-card-status ${section.status}">${section.label}</span>
+        </div>
+        <div class="trip-list-card-dates">${formatDateRange(t.start, t.end)}</div>
+        <div class="trip-list-card-meta">
+          <span>📍 ${placeCount}곳</span>
+          <span>💸 ${expenseCount}건</span>
+          <button class="trip-list-card-delete" onclick="event.stopPropagation(); deleteTripFromList('${t.id}', '${escapeAttr(t.name)}')">삭제</button>
+        </div>
+      `;
+      card.onclick = () => openTripFromList(t);
+      content.appendChild(card);
+    });
+  });
+}
+
+function formatDateRange(start, end) {
+  if (!start || !end) return '';
+  const s = new Date(start);
+  const e = new Date(end);
+  const sameYear = s.getFullYear() === e.getFullYear();
+  const sameMonth = sameYear && s.getMonth() === e.getMonth();
+  const yearStr = s.getFullYear();
+  if (sameMonth) {
+    return `${yearStr}년 ${s.getMonth()+1}월 ${s.getDate()}일 — ${e.getDate()}일`;
+  } else if (sameYear) {
+    return `${yearStr}년 ${s.getMonth()+1}월 ${s.getDate()}일 — ${e.getMonth()+1}월 ${e.getDate()}일`;
+  } else {
+    return `${yearStr}.${s.getMonth()+1}.${s.getDate()} — ${e.getFullYear()}.${e.getMonth()+1}.${e.getDate()}`;
+  }
+}
+
+async function openTripFromList(meta) {
+  state.tripId = meta.id;
+  saveLocal();
+  await enterApp();
+}
+
+async function deleteTripFromList(tripId, name) {
+  if (!confirm(`"${name}" 여행을 삭제할까요?\n\n둘 다 더 이상 볼 수 없게 됩니다. 이 작업은 취소할 수 없어요.`)) return;
+  await deleteTripDoc(tripId);
+  toast('삭제됨');
+}
+
+function newTripFromList() {
+  document.getElementById('tripListScreen').style.display = 'none';
+  document.getElementById('setupScreen').style.display = 'flex';
+  document.getElementById('setupStep1').style.display = 'none';
+  document.getElementById('setupStep2').style.display = 'block';
+  document.getElementById('setupBackBtn').style.display = 'flex';
+  document.getElementById('tripName').value = '';
+  document.getElementById('startDate').value = '';
+  document.getElementById('endDate').value = '';
+}
+
+function logoutCouple() {
+  if (!confirm('로그아웃할까요?\n다음에 다시 같은 이름과 사귄 날짜로 들어오면 데이터를 그대로 볼 수 있어요.')) return;
+  if (unsubscribeSnapshot) unsubscribeSnapshot();
+  if (unsubscribeList) unsubscribeList();
+  fullLogout();
+  state.coupleId = null;
+  state.userName = null;
+  state.anniversary = null;
+  state.trip = null;
+  state.tripId = null;
+  state.lastSyncData = null;
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('tripListScreen').style.display = 'none';
+  document.getElementById('setupScreen').style.display = 'flex';
+  document.getElementById('setupStep1').style.display = 'block';
+  document.getElementById('setupStep2').style.display = 'none';
+  document.getElementById('setupBackBtn').style.display = 'none';
+  document.getElementById('myName').value = '';
+  document.getElementById('anniversary').value = '';
 }
 
 /* =========================================================
@@ -1709,11 +2273,11 @@ function render() {
   if (!state.trip) return;
   const t = state.trip;
 
-  document.getElementById('userName').textContent = state.userName;
   document.getElementById('tripTitle').textContent = t.name;
   document.getElementById('tripDates').textContent =
     formatDate(t.start) + ' — ' + formatDate(t.end);
-  document.getElementById('tripCode').textContent = t.code;
+  const memberStr = (t.members || []).join(' & ') || state.userName;
+  document.getElementById('tripMembers').textContent = memberStr;
 
   const totalPlaces = t.days.reduce((s, d) => s + d.places.length, 0);
   document.getElementById('placesCount').textContent = totalPlaces;
@@ -2278,17 +2842,6 @@ function toast(msg) {
   setTimeout(() => t.classList.remove('show'), 2000);
 }
 
-function copyTripCode() {
-  const code = state.trip.code;
-  const text = `${state.trip.name}에 초대합니다 🌱\n코드: ${code}`;
-  if (navigator.share) {
-    navigator.share({ title: 'Hae Ki Vel', text }).catch(()=>{});
-  } else if (navigator.clipboard) {
-    navigator.clipboard.writeText(code);
-    toast('코드 복사됨: ' + code);
-  }
-}
-
 function openInMaps(lat, lng, name) {
   const ua = navigator.userAgent;
   if (/iPhone|iPad|iPod/.test(ua)) {
@@ -2334,29 +2887,45 @@ function waitForFirebase() {
   await waitForFirebase();
 
   const session = loadLocal();
-  if (session && session.tripCode) {
+
+  // 1. 세션이 있으면 (= 이미 로그인됨) 바로 진행
+  if (session && session.coupleId && session.userName && session.anniversary) {
+    state.coupleId = session.coupleId;
     state.userName = session.userName;
-    state.tripCode = session.tripCode;
-    state.tripId = session.tripId;
-    const trip = await loadTrip(session.tripCode);
-    if (trip) {
-      state.trip = trip;
-      state.lastSyncData = JSON.stringify(trip);
-      // make sure current user is in members
-      if (!trip.members.includes(state.userName)) {
-        trip.members.push(state.userName);
-        await saveTrip(trip);
+    state.anniversary = session.anniversary;
+
+    // 1-1. 활성 trip이 있으면 바로 그 trip 진입
+    if (session.tripId) {
+      state.tripId = session.tripId;
+      const trip = await loadTrip(session.tripId);
+      if (trip) {
+        state.trip = trip;
+        state.lastSyncData = JSON.stringify(trip);
+        if (!trip.members.includes(state.userName)) {
+          trip.members.push(state.userName);
+          await saveTrip(trip);
+        }
+        if (trip.days.length > 0) state.selectedDay = 0;
+        document.getElementById('setupScreen').style.display = 'none';
+        document.getElementById('tripListScreen').style.display = 'none';
+        document.getElementById('app').style.display = 'flex';
+        render();
+        subscribeToTrip(state.tripId);
+        return;
+      } else {
+        clearTripFromSession();
+        state.tripId = null;
       }
-      if (trip.days.length > 0) state.selectedDay = 0;
-      document.getElementById('setupScreen').style.display = 'none';
-      document.getElementById('app').style.display = 'flex';
-      render();
-      subscribeToTrip(state.tripCode);
-      return;
-    } else {
-      clearLocal();
     }
+
+    // 1-2. trip 없으면 목록 화면
+    document.getElementById('setupScreen').style.display = 'none';
+    document.getElementById('tripListScreen').style.display = 'block';
+    await renderTripList();
+    return;
   }
+
+  // 2. 세션 없음 → 로그인 화면
   // Setup screen is already visible by default
 })();
 </script>
