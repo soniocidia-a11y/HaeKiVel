@@ -1,0 +1,2364 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#faf9f7" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="mobile-web-app-capable" content="yes" />
+<title>우리의 여행 · Voyage</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+<!-- Firebase SDK (modular v10) -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  // ⚠️ 아래 firebaseConfig를 본인 Firebase 프로젝트 값으로 교체하세요
+  const firebaseConfig = {
+    apiKey: "AIzaSyCff0QscckhuwQomXwPDdGrGa-L1ygdAjI",
+    authDomain: "travel-152ff.firebaseapp.com",
+    projectId: "travel-152ff",
+    storageBucket: "travel-152ff.firebasestorage.app",
+  messagingSenderId: "849876948302",
+  appId: "1:849876948302:web:4936491a93bd8ffca27a1f"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // 전역에 노출해서 메인 스크립트에서 접근 가능하게
+  window.fbDb = db;
+  window.fbDoc = doc;
+  window.fbGetDoc = getDoc;
+  window.fbSetDoc = setDoc;
+  window.fbOnSnapshot = onSnapshot;
+  window.fbReady = true;
+  window.dispatchEvent(new Event('firebase-ready'));
+</script>
+
+<!-- PWA manifest (inline via data URI) -->
+<link rel="manifest" href='data:application/manifest+json;charset=utf-8,{"name":"우리의 여행","short_name":"Voyage","start_url":".","display":"standalone","background_color":"%23faf9f7","theme_color":"%23ff5a3d","icons":[{"src":"data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 512 512%22><rect width=%22512%22 height=%22512%22 rx=%22112%22 fill=%22%23ff5a3d%22/><text x=%22256%22 y=%22340%22 font-size=%22280%22 text-anchor=%22middle%22 fill=%22white%22 font-family=%22serif%22 font-style=%22italic%22>V</text></svg>","sizes":"512x512","type":"image/svg+xml"}]}' />
+
+<style>
+  :root {
+    /* Fresh modern palette */
+    --bg: #faf9f7;
+    --bg-soft: #f2f0ec;
+    --surface: #ffffff;
+    --surface-soft: #fafafa;
+
+    --ink: #0f0f0f;
+    --ink-soft: #525252;
+    --ink-mute: #a1a1a1;
+
+    --accent: #ff5a3d;       /* coral - warm, friendly */
+    --accent-soft: #ffebe6;
+    --accent-deep: #e64626;
+
+    --mint: #d4f0e0;
+    --mint-deep: #16a34a;
+    --sky: #dbeafe;
+    --sky-deep: #2563eb;
+    --lemon: #fef3c7;
+    --lemon-deep: #d97706;
+    --lilac: #ede9fe;
+    --lilac-deep: #7c3aed;
+    --pink: #fce7f3;
+    --pink-deep: #ec4899;
+
+    --line: rgba(15, 15, 15, 0.06);
+    --line-strong: rgba(15, 15, 15, 0.12);
+
+    --shadow-sm: 0 1px 2px rgba(15, 15, 15, 0.04);
+    --shadow: 0 2px 8px rgba(15, 15, 15, 0.06), 0 1px 2px rgba(15, 15, 15, 0.04);
+    --shadow-lg: 0 12px 32px rgba(15, 15, 15, 0.10), 0 4px 8px rgba(15, 15, 15, 0.04);
+
+    --radius-sm: 8px;
+    --radius: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 20px;
+    --radius-2xl: 24px;
+
+    --ease: cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  html, body {
+    height: 100%;
+    overscroll-behavior: none;
+  }
+
+  body {
+    font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    font-size: 15px;
+    line-height: 1.5;
+    overflow: hidden;
+    letter-spacing: -0.01em;
+  }
+
+  .serif { font-family: 'Instrument Serif', Georgia, serif; letter-spacing: -0.02em; }
+  .mono { font-family: 'Geist Mono', ui-monospace, monospace; }
+
+  #app {
+    position: relative;
+    height: 100vh;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    max-width: 520px;
+    margin: 0 auto;
+    background: var(--bg);
+    z-index: 2;
+  }
+
+  /* ===== SETUP SCREEN ===== */
+  .setup {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 32px;
+    text-align: center;
+  }
+
+  .setup::before {
+    content: '';
+    position: absolute;
+    top: -100px;
+    right: -80px;
+    width: 280px;
+    height: 280px;
+    background: radial-gradient(circle, rgba(255, 90, 61, 0.15) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  .setup::after {
+    content: '';
+    position: absolute;
+    bottom: -100px;
+    left: -80px;
+    width: 260px;
+    height: 260px;
+    background: radial-gradient(circle, rgba(37, 99, 235, 0.12) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  .setup > * { position: relative; z-index: 2; }
+
+  .setup-logo {
+    font-family: 'Instrument Serif', serif;
+    font-style: italic;
+    font-size: 84px;
+    font-weight: 400;
+    color: var(--ink);
+    letter-spacing: -0.04em;
+    margin-bottom: 4px;
+    line-height: 1;
+  }
+
+  .setup-tagline {
+    font-family: 'Geist', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 56px;
+  }
+
+  .setup h2 {
+    font-family: 'Instrument Serif', serif;
+    font-weight: 400;
+    font-size: 26px;
+    margin-bottom: 32px;
+    color: var(--ink);
+    line-height: 1.3;
+  }
+
+  .setup input {
+    width: 100%;
+    max-width: 340px;
+    padding: 16px 20px;
+    font-size: 16px;
+    font-family: 'Geist', sans-serif;
+    background: var(--surface);
+    border: 1.5px solid var(--line-strong);
+    border-radius: var(--radius);
+    color: var(--ink);
+    margin-bottom: 12px;
+    outline: none;
+    transition: all 0.2s var(--ease);
+    box-shadow: var(--shadow-sm);
+  }
+  .setup input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 4px var(--accent-soft);
+  }
+
+  .setup-btn {
+    padding: 16px 40px;
+    background: var(--ink);
+    color: white;
+    border: none;
+    border-radius: 999px;
+    font-family: 'Geist', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: all 0.15s var(--ease);
+    box-shadow: var(--shadow);
+  }
+  .setup-btn:active {
+    transform: scale(0.96);
+  }
+
+  .setup-divider {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: 28px 0;
+    color: var(--ink-mute);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+  .setup-divider::before, .setup-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--line-strong);
+    max-width: 60px;
+  }
+
+  /* ===== HEADER ===== */
+  header {
+    padding: 16px 20px 14px;
+    padding-top: calc(16px + env(safe-area-inset-top));
+    background: var(--bg);
+    position: relative;
+  }
+
+  .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .trip-label {
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .trip-label-dot {
+    width: 6px;
+    height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+  }
+
+  .trip-code {
+    font-family: 'Geist Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--ink-soft);
+    background: var(--surface);
+    padding: 5px 10px;
+    border-radius: 999px;
+    cursor: pointer;
+    border: 1px solid var(--line-strong);
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .trip-code:active { transform: scale(0.96); background: var(--bg-soft); }
+  .trip-code::before { content: '🔗'; font-size: 10px; }
+
+  .trip-title {
+    font-family: 'Instrument Serif', serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: 34px;
+    color: var(--ink);
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+    margin-bottom: 6px;
+  }
+
+  .trip-meta {
+    font-size: 13px;
+    color: var(--ink-soft);
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    font-weight: 500;
+  }
+
+  .trip-meta .dot {
+    width: 3px;
+    height: 3px;
+    background: var(--ink-mute);
+    border-radius: 50%;
+  }
+
+  /* ===== TABS ===== */
+  .tabs {
+    display: flex;
+    gap: 6px;
+    background: var(--bg);
+    padding: 4px 16px 14px;
+  }
+
+  .tab {
+    flex: 1;
+    padding: 10px 12px;
+    text-align: center;
+    font-family: 'Geist', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink-mute);
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    border-radius: 999px;
+    transition: all 0.2s var(--ease);
+    letter-spacing: -0.01em;
+  }
+
+  .tab.active {
+    color: var(--ink);
+    background: var(--surface);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .tab-count {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    margin-left: 4px;
+    color: var(--ink-mute);
+    font-weight: 500;
+  }
+  .tab.active .tab-count { color: var(--accent); }
+
+  /* ===== MAIN CONTENT ===== */
+  main {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    background: var(--bg);
+  }
+
+  .panel {
+    display: none;
+    min-height: 100%;
+  }
+  .panel.active { display: block; animation: fadeIn 0.25s var(--ease); }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ===== ITINERARY ===== */
+  .day-selector {
+    display: flex;
+    gap: 8px;
+    padding: 4px 20px 16px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .day-selector::-webkit-scrollbar { display: none; }
+
+  .day-chip {
+    flex-shrink: 0;
+    min-width: 64px;
+    padding: 10px 14px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s var(--ease);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .day-chip:active { transform: scale(0.95); }
+
+  .day-chip.active {
+    background: var(--ink);
+    color: white;
+    border-color: var(--ink);
+    box-shadow: var(--shadow);
+  }
+
+  .day-chip .day-num {
+    font-family: 'Geist', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+
+  .day-chip .day-date {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--ink-mute);
+    margin-top: 3px;
+  }
+  .day-chip.active .day-date { color: rgba(255,255,255,0.7); }
+
+  .day-chip-add {
+    background: transparent;
+    border: 1.5px dashed var(--line-strong);
+    color: var(--ink-mute);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    font-weight: 300;
+    box-shadow: none;
+  }
+
+  .timeline {
+    padding: 8px 20px 100px;
+  }
+
+  .place-card {
+    display: flex;
+    gap: 14px;
+    margin-bottom: 14px;
+    position: relative;
+    animation: slideIn 0.3s var(--ease);
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .place-marker-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .place-marker {
+    width: 36px;
+    height: 36px;
+    background: var(--surface);
+    border: 2px solid var(--accent);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Geist', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--accent);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .place-line {
+    flex: 1;
+    width: 2px;
+    background: linear-gradient(to bottom, var(--line-strong), transparent);
+    margin-top: 4px;
+    min-height: 12px;
+  }
+
+  .place-content {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    padding: 16px 18px;
+    border-radius: var(--radius-lg);
+    min-width: 0;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.15s var(--ease);
+  }
+
+  .place-content:active { transform: scale(0.99); }
+
+  .place-time {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: 'Geist Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent);
+    background: var(--accent-soft);
+    padding: 3px 8px;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    letter-spacing: 0;
+  }
+
+  .place-name {
+    font-family: 'Geist', sans-serif;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--ink);
+    line-height: 1.3;
+    margin-bottom: 4px;
+    letter-spacing: -0.02em;
+    word-break: break-word;
+  }
+
+  .place-addr {
+    font-size: 13px;
+    color: var(--ink-mute);
+    line-height: 1.45;
+    word-break: break-word;
+  }
+
+  .place-note {
+    font-family: 'Instrument Serif', serif;
+    font-style: italic;
+    font-size: 14px;
+    color: var(--ink-soft);
+    margin-top: 6px;
+    padding: 8px 12px;
+    background: var(--lemon);
+    border-radius: var(--radius-sm);
+    border-left: 3px solid var(--lemon-deep);
+  }
+
+  .place-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--line);
+  }
+
+  .place-btn {
+    font-size: 12px;
+    font-family: 'Geist', sans-serif;
+    font-weight: 600;
+    background: var(--bg-soft);
+    border: none;
+    color: var(--ink-soft);
+    cursor: pointer;
+    padding: 7px 12px;
+    border-radius: 999px;
+    transition: all 0.15s var(--ease);
+    letter-spacing: -0.01em;
+  }
+  .place-btn:active { transform: scale(0.95); }
+  .place-btn.danger { color: var(--accent); background: var(--accent-soft); }
+  .place-btn.expense { color: var(--mint-deep); background: var(--mint); }
+  .place-btn.expense::before { content: '+ '; }
+
+  .place-expenses {
+    margin-top: 12px;
+    padding: 12px 14px;
+    background: var(--mint);
+    border-radius: var(--radius);
+  }
+
+  .place-expense-row {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    gap: 10px;
+    align-items: center;
+    font-size: 13px;
+    padding: 4px 0;
+  }
+
+  .pe-payer {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    background: white;
+    border-radius: 999px;
+    color: var(--ink-soft);
+  }
+
+  .pe-title {
+    font-family: 'Geist', sans-serif;
+    font-weight: 500;
+    color: var(--ink);
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    letter-spacing: -0.01em;
+  }
+
+  .pe-split {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--mint-deep);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .pe-amount {
+    font-family: 'Geist', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+  }
+
+  .place-expense-total {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(22, 163, 74, 0.2);
+    text-align: right;
+    font-family: 'Geist', sans-serif;
+    font-size: 13px;
+    color: var(--mint-deep);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  .add-place-btn {
+    width: 100%;
+    padding: 18px;
+    border: 1.5px dashed var(--line-strong);
+    background: transparent;
+    font-family: 'Geist', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    color: var(--ink-mute);
+    cursor: pointer;
+    border-radius: var(--radius);
+    margin-top: 4px;
+    transition: all 0.15s var(--ease);
+  }
+  .add-place-btn:active { transform: scale(0.99); background: var(--bg-soft); }
+
+  .empty-state {
+    padding: 80px 32px 24px;
+    text-align: center;
+  }
+  .empty-state-emoji {
+    font-size: 48px;
+    margin-bottom: 16px;
+    display: block;
+  }
+  .empty-state .serif-big {
+    font-family: 'Instrument Serif', serif;
+    font-style: italic;
+    font-size: 26px;
+    color: var(--ink);
+    margin-bottom: 6px;
+    letter-spacing: -0.02em;
+  }
+  .empty-state div:last-child {
+    font-size: 14px;
+    color: var(--ink-mute);
+  }
+
+  /* ===== MAP ===== */
+  #map {
+    width: 100%;
+    height: 100%;
+    background: var(--bg-soft);
+  }
+
+  .map-container {
+    position: relative;
+    height: 100%;
+    min-height: calc(100dvh - 180px);
+  }
+
+  .map-legend {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    right: 14px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: 12px 16px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink);
+    z-index: 500;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: var(--shadow);
+  }
+
+  .map-legend .mono {
+    font-weight: 600;
+    color: var(--accent);
+  }
+
+  .leaflet-container { font-family: 'Geist', sans-serif; }
+
+  /* ===== EXPENSES ===== */
+  .expense-summary {
+    padding: 4px 20px 20px;
+  }
+
+  .total-card {
+    background: linear-gradient(135deg, var(--ink) 0%, #2a2a2a 100%);
+    color: white;
+    padding: 20px 22px;
+    border-radius: var(--radius-xl);
+    margin-bottom: 14px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--shadow-lg);
+  }
+
+  .total-card::before {
+    content: '';
+    position: absolute;
+    top: -40px;
+    right: -40px;
+    width: 160px;
+    height: 160px;
+    background: radial-gradient(circle, rgba(255, 90, 61, 0.3) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  .total-label {
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: 600;
+    margin-bottom: 6px;
+    position: relative;
+  }
+
+  .total-amount {
+    font-family: 'Geist', sans-serif;
+    font-size: 36px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    position: relative;
+  }
+
+  #memberDetails {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .member-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 16px 18px;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .member-card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  .member-card-name {
+    font-family: 'Geist', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+  }
+
+  .member-card-net {
+    font-family: 'Geist', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 999px;
+    letter-spacing: -0.01em;
+  }
+  .member-card-net.positive { color: var(--mint-deep); background: var(--mint); }
+  .member-card-net.negative { color: var(--accent); background: var(--accent-soft); }
+  .member-card-net.zero { color: var(--ink-mute); background: var(--bg-soft); }
+
+  .member-card-rows {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .member-stat {
+    background: var(--bg-soft);
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+  }
+
+  .member-stat-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--ink-mute);
+    margin-bottom: 4px;
+    letter-spacing: -0.01em;
+  }
+
+  .member-stat-value {
+    font-family: 'Geist', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+  }
+
+  .settlement {
+    padding: 16px 18px;
+    background: var(--accent-soft);
+    border-radius: var(--radius-lg);
+    font-family: 'Geist', sans-serif;
+    font-size: 14px;
+    color: var(--ink);
+    line-height: 1.55;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+
+  .settlement strong {
+    color: var(--accent-deep);
+    font-weight: 700;
+  }
+
+  .expense-list {
+    padding: 0 20px 120px;
+  }
+
+  .expense-list-header {
+    font-family: 'Geist', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink-mute);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 8px 0 12px;
+  }
+
+  .expense-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 16px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    margin-bottom: 8px;
+    gap: 12px;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.15s var(--ease);
+  }
+  .expense-item:active { transform: scale(0.99); }
+
+  .expense-info { flex: 1; min-width: 0; }
+
+  .expense-title {
+    font-family: 'Geist', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 4px;
+    letter-spacing: -0.02em;
+    word-break: break-word;
+  }
+
+  .expense-meta {
+    font-size: 12px;
+    color: var(--ink-mute);
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .expense-payer {
+    display: inline-block;
+    padding: 2px 8px;
+    background: var(--sky);
+    color: var(--sky-deep);
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .expense-amount {
+    font-family: 'Geist', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    white-space: nowrap;
+    letter-spacing: -0.02em;
+  }
+
+  .expense-delete {
+    background: none;
+    border: none;
+    color: var(--ink-mute);
+    font-size: 20px;
+    cursor: pointer;
+    padding: 0 4px;
+    line-height: 1;
+    margin-left: 8px;
+    transition: color 0.15s;
+  }
+  .expense-delete:active { color: var(--accent); }
+
+  /* ===== FAB ===== */
+  .fab {
+    position: fixed;
+    bottom: calc(24px + env(safe-area-inset-bottom));
+    right: 50%;
+    transform: translateX(calc(260px - 36px));
+    width: 60px;
+    height: 60px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    font-size: 32px;
+    font-family: 'Geist', sans-serif;
+    font-weight: 300;
+    line-height: 1;
+    cursor: pointer;
+    box-shadow: 0 8px 24px rgba(255, 90, 61, 0.4), 0 2px 4px rgba(255, 90, 61, 0.2);
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s var(--ease);
+  }
+  .fab:active {
+    transform: translateX(calc(260px - 36px)) scale(0.9);
+    box-shadow: 0 4px 12px rgba(255, 90, 61, 0.4);
+  }
+
+  @media (max-width: 520px) {
+    .fab {
+      right: 20px;
+      transform: none;
+    }
+    .fab:active { transform: scale(0.9); }
+  }
+
+  /* ===== MODAL ===== */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 15, 15, 0.4);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 200;
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+    animation: backdropIn 0.2s var(--ease);
+  }
+  .modal-backdrop.active { display: flex; }
+
+  @keyframes backdropIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .modal {
+    background: var(--bg);
+    width: 100%;
+    max-width: 520px;
+    max-height: 88dvh;
+    border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    animation: slideUp 0.3s var(--ease);
+  }
+
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  .modal::before {
+    content: '';
+    display: block;
+    width: 40px;
+    height: 4px;
+    background: var(--line-strong);
+    border-radius: 999px;
+    margin: 10px auto 0;
+  }
+
+  .modal-header {
+    padding: 14px 22px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .modal-title {
+    font-family: 'Instrument Serif', serif;
+    font-style: italic;
+    font-size: 24px;
+    font-weight: 400;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+  }
+
+  .modal-close {
+    background: var(--bg-soft);
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    font-size: 18px;
+    color: var(--ink-soft);
+    cursor: pointer;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+  }
+  .modal-close:active { transform: scale(0.9); }
+
+  .modal-body {
+    padding: 4px 22px 20px;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  .form-group { margin-bottom: 18px; }
+
+  .form-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink-soft);
+    margin-bottom: 8px;
+    letter-spacing: -0.01em;
+  }
+
+  .form-input, .form-select {
+    width: 100%;
+    padding: 14px 16px;
+    font-size: 15px;
+    font-family: 'Geist', sans-serif;
+    font-weight: 500;
+    background: var(--surface);
+    border: 1.5px solid var(--line-strong);
+    border-radius: var(--radius);
+    color: var(--ink);
+    outline: none;
+    transition: all 0.15s var(--ease);
+    letter-spacing: -0.01em;
+  }
+  .form-input:focus, .form-select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 4px var(--accent-soft);
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .search-results {
+    max-height: 280px;
+    overflow-y: auto;
+    border: 1px solid var(--line);
+    margin-top: 8px;
+    background: var(--surface);
+    border-radius: var(--radius);
+  }
+
+  .search-result {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--line);
+    cursor: pointer;
+    font-size: 13px;
+    transition: background 0.1s;
+  }
+  .search-result:hover, .search-result:active { background: var(--bg-soft); }
+  .search-result:last-child { border-bottom: none; }
+  .search-result-name {
+    font-family: 'Geist', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+  }
+  .search-result-addr { font-size: 12px; color: var(--ink-mute); margin-top: 3px; }
+
+  .modal-footer {
+    padding: 16px 22px;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
+    display: flex;
+    gap: 10px;
+    background: var(--bg);
+    border-top: 1px solid var(--line);
+  }
+
+  .btn {
+    flex: 1;
+    padding: 15px;
+    font-family: 'Geist', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    border-radius: var(--radius);
+    transition: all 0.15s var(--ease);
+    letter-spacing: -0.01em;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary {
+    background: var(--ink);
+    color: white;
+    box-shadow: var(--shadow);
+  }
+  .btn-secondary {
+    background: var(--bg-soft);
+    color: var(--ink-soft);
+  }
+
+  .payer-toggle {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 8px;
+  }
+
+  .payer-opt {
+    padding: 12px;
+    text-align: center;
+    border: 1.5px solid var(--line-strong);
+    background: var(--surface);
+    font-size: 14px;
+    font-family: 'Geist', sans-serif;
+    font-weight: 600;
+    color: var(--ink-soft);
+    cursor: pointer;
+    border-radius: var(--radius);
+    transition: all 0.15s var(--ease);
+    letter-spacing: -0.01em;
+  }
+  .payer-opt:active { transform: scale(0.96); }
+  .payer-opt.active {
+    background: var(--ink);
+    color: white;
+    border-color: var(--ink);
+  }
+
+  .split-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .split-card {
+    padding: 18px 14px;
+    text-align: center;
+    border: 1.5px solid var(--line-strong);
+    background: var(--surface);
+    cursor: pointer;
+    border-radius: var(--radius-lg);
+    transition: all 0.2s var(--ease);
+  }
+  .split-card:active { transform: scale(0.97); }
+
+  .split-card[data-split="equal"].active {
+    background: var(--sky);
+    border-color: var(--sky-deep);
+    color: var(--sky-deep);
+  }
+  .split-card[data-split="payer"].active {
+    background: var(--pink);
+    border-color: var(--pink-deep);
+    color: var(--pink-deep);
+  }
+
+  .split-card-icon {
+    font-size: 28px;
+    line-height: 1;
+    margin-bottom: 8px;
+    font-family: 'Instrument Serif', serif;
+    font-style: italic;
+  }
+
+  .split-card-title {
+    font-family: 'Geist', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 2px;
+    letter-spacing: -0.02em;
+  }
+
+  .split-card-desc {
+    font-size: 11px;
+    font-weight: 500;
+    opacity: 0.7;
+  }
+
+  .linked-place-info {
+    margin-bottom: 18px;
+    padding: 12px 14px;
+    background: var(--mint);
+    border-radius: var(--radius);
+    font-size: 12px;
+    color: var(--mint-deep);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+
+  .linked-place-name {
+    font-family: 'Geist', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--ink);
+    margin-top: 4px;
+    letter-spacing: -0.02em;
+  }
+
+  .toast {
+    position: fixed;
+    top: calc(20px + env(safe-area-inset-top));
+    left: 50%;
+    transform: translateX(-50%) translateY(-80px);
+    background: var(--ink);
+    color: white;
+    padding: 12px 20px;
+    font-family: 'Geist', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 999px;
+    z-index: 1000;
+    opacity: 0;
+    transition: all 0.3s var(--ease);
+    pointer-events: none;
+    white-space: nowrap;
+    box-shadow: var(--shadow-lg);
+    letter-spacing: -0.01em;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  .loading-spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--line-strong);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    vertical-align: middle;
+    margin-right: 8px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .sync-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: var(--ink-mute);
+    font-family: 'Geist Mono', monospace;
+    font-weight: 500;
+  }
+
+  .sync-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--mint-deep);
+  }
+  .sync-dot.syncing { background: var(--lemon-deep); animation: pulse 1s infinite; }
+  @keyframes pulse { 50% { opacity: 0.3; } }
+
+</style>
+</head>
+<body>
+
+<div id="app" style="display:none;">
+  <header>
+    <div class="header-top">
+      <span class="trip-label"><span class="trip-label-dot"></span>VOYAGE · <span id="userName"></span></span>
+      <span class="sync-indicator">
+        <span class="sync-dot" id="syncDot"></span>
+        <span id="syncText">synced</span>
+      </span>
+    </div>
+    <div class="trip-title serif" id="tripTitle">Trip</div>
+    <div class="trip-meta">
+      <span id="tripDates">—</span>
+      <span class="dot"></span>
+      <span class="trip-code" id="tripCode" onclick="copyTripCode()">CODE</span>
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab active" data-panel="itinerary">일정 <span class="tab-count" id="placesCount">0</span></button>
+    <button class="tab" data-panel="map">지도</button>
+    <button class="tab" data-panel="expenses">정산 <span class="tab-count" id="expensesCount">0</span></button>
+  </nav>
+
+  <main>
+    <!-- ITINERARY -->
+    <div class="panel active" data-panel="itinerary">
+      <div class="day-selector" id="daySelector"></div>
+      <div class="timeline" id="timeline"></div>
+    </div>
+
+    <!-- MAP -->
+    <div class="panel" data-panel="map">
+      <div class="map-container">
+        <div class="map-legend">
+          <span id="mapLegendText">선택한 날의 동선</span>
+          <span class="mono" id="mapDistance">—</span>
+        </div>
+        <div id="map"></div>
+      </div>
+    </div>
+
+    <!-- EXPENSES -->
+    <div class="panel" data-panel="expenses">
+      <div class="expense-summary">
+        <div class="total-card">
+          <div class="total-label">Total Spent</div>
+          <div class="total-amount" id="totalAmount">₩0</div>
+        </div>
+        <div id="memberDetails"></div>
+        <div class="settlement" id="settlement">아직 지출이 없어요.</div>
+      </div>
+      <div class="expense-list" id="expenseList"></div>
+    </div>
+  </main>
+
+  <button class="fab" id="fab">+</button>
+</div>
+
+<!-- SETUP SCREEN -->
+<div class="setup" id="setupScreen">
+  <div class="setup-logo serif">Hae Ki Vel</div>
+  <div class="setup-tagline">Plan together · Travel together</div>
+
+  <div id="setupStep1">
+    <h2>둘의 여행을 시작해볼까요?</h2>
+    <input type="text" id="myName" placeholder="내 이름" maxlength="12" autocomplete="off" />
+    <br />
+    <button class="setup-btn" onclick="goToStep2()">계속</button>
+  </div>
+
+  <div id="setupStep2" style="display:none;">
+    <h2 id="step2Title">여행을 만들거나, 초대 코드를 입력하세요</h2>
+    <input type="text" id="tripName" placeholder="여행 이름 (예: 제주도 3박 4일)" maxlength="30" autocomplete="off" />
+    <div class="form-row" style="max-width:320px; width:100%;">
+      <input type="date" id="startDate" style="max-width:none;" />
+      <input type="date" id="endDate" style="max-width:none;" />
+    </div>
+    <button class="setup-btn" onclick="createTrip()">새 여행 만들기</button>
+    <div class="setup-divider">또는</div>
+    <input type="text" id="joinCode" placeholder="초대 코드 입력" maxlength="8" style="text-transform:uppercase; letter-spacing:0.2em; text-align:center;" autocomplete="off" />
+    <button class="setup-btn" style="background:var(--paper); color:var(--ink); border:1px solid var(--ink);" onclick="joinTrip()">여행 참여하기</button>
+  </div>
+</div>
+
+<!-- ADD PLACE MODAL -->
+<div class="modal-backdrop" id="placeModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title serif">장소 추가</div>
+      <button class="modal-close" onclick="closeModal('placeModal')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">장소 검색</label>
+        <input type="text" class="form-input" id="placeSearch" placeholder="카페, 식당, 관광지 등..." />
+        <div class="search-results" id="searchResults" style="display:none;"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">시간</label>
+        <input type="time" class="form-input" id="placeTime" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">메모 (선택)</label>
+        <input type="text" class="form-input" id="placeNote" placeholder="예: 예약 필요" maxlength="100" />
+      </div>
+      <input type="hidden" id="placeLat" />
+      <input type="hidden" id="placeLng" />
+      <input type="hidden" id="placeName" />
+      <input type="hidden" id="placeAddr" />
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('placeModal')">취소</button>
+      <button class="btn btn-primary" onclick="savePlace()">추가</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD EXPENSE MODAL -->
+<div class="modal-backdrop" id="expenseModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title serif">지출 추가</div>
+      <button class="modal-close" onclick="closeModal('expenseModal')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div id="linkedPlaceInfo" class="linked-place-info" style="display:none;">
+        연결된 장소
+        <div class="linked-place-name" id="linkedPlaceName"></div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">항목</label>
+        <input type="text" class="form-input" id="expenseTitle" placeholder="예: 저녁식사" maxlength="40" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">금액 (원)</label>
+        <input type="number" class="form-input" id="expenseAmount" placeholder="0" inputmode="numeric" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">누가 결제했나요?</label>
+        <div class="payer-toggle" id="payerToggle"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">정산 방식</label>
+        <div class="split-cards">
+          <div class="split-card active" data-split="equal" onclick="pickSplit('equal')">
+            <div class="split-card-icon">🤝</div>
+            <div class="split-card-title">더치할게요</div>
+            <div class="split-card-desc">반반 나눠요</div>
+          </div>
+          <div class="split-card" data-split="payer" onclick="pickSplit('payer')">
+            <div class="split-card-icon">💝</div>
+            <div class="split-card-title">내가 낼게요</div>
+            <div class="split-card-desc">결제자 전액 부담</div>
+          </div>
+        </div>
+      </div>
+      <input type="hidden" id="splitMode" value="equal" />
+      <input type="hidden" id="linkedPlaceId" value="" />
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('expenseModal')">취소</button>
+      <button class="btn btn-primary" onclick="saveExpense()">추가</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD DAY MODAL -->
+<div class="modal-backdrop" id="dayModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title serif">날짜 추가</div>
+      <button class="modal-close" onclick="closeModal('dayModal')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">날짜</label>
+        <input type="date" class="form-input" id="newDayDate" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('dayModal')">취소</button>
+      <button class="btn btn-primary" onclick="saveDay()">추가</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================
+   STATE & STORAGE
+   ========================================================= */
+const state = {
+  tripId: null,
+  tripCode: null,
+  userName: null,
+  trip: null,
+  selectedDay: null,
+  map: null,
+  markers: [],
+  polyline: null,
+  searchTimeout: null,
+  currentPayer: null,
+  lastSyncData: null,
+};
+
+const DEVICE_KEY = 'voyage_device';
+function getDeviceId() {
+  let d = localStorage.getItem(DEVICE_KEY);
+  if (!d) {
+    d = 'd_' + Math.random().toString(36).slice(2, 10);
+    localStorage.setItem(DEVICE_KEY, d);
+  }
+  return d;
+}
+
+function saveLocal() {
+  localStorage.setItem('voyage_session', JSON.stringify({
+    tripId: state.tripId,
+    tripCode: state.tripCode,
+    userName: state.userName,
+  }));
+}
+
+function loadLocal() {
+  try {
+    return JSON.parse(localStorage.getItem('voyage_session') || 'null');
+  } catch { return null; }
+}
+
+function clearLocal() {
+  localStorage.removeItem('voyage_session');
+}
+
+/* =========================================================
+   FIREBASE FIRESTORE STORAGE
+   Real-time sync between partners via Firestore
+   ========================================================= */
+let unsubscribeSnapshot = null;
+
+async function loadTrip(code) {
+  try {
+    const ref = window.fbDoc(window.fbDb, 'trips', code);
+    const snap = await window.fbGetDoc(ref);
+    return snap.exists() ? snap.data() : null;
+  } catch (e) {
+    console.error('loadTrip failed:', e);
+    return null;
+  }
+}
+
+async function saveTrip(trip) {
+  setSync('syncing');
+  try {
+    trip.updatedAt = Date.now();
+    trip.updatedBy = state.userName;
+    const ref = window.fbDoc(window.fbDb, 'trips', trip.code);
+    await window.fbSetDoc(ref, trip);
+    state.trip = trip;
+    state.lastSyncData = JSON.stringify(trip);
+    setSync('synced');
+    return true;
+  } catch (e) {
+    console.error('saveTrip failed:', e);
+    setSync('error');
+    toast('저장 실패: ' + e.message);
+    return false;
+  }
+}
+
+// 실시간 구독 시작 — 상대방이 변경하면 자동 반영
+function subscribeToTrip(code) {
+  if (unsubscribeSnapshot) unsubscribeSnapshot();
+  const ref = window.fbDoc(window.fbDb, 'trips', code);
+  unsubscribeSnapshot = window.fbOnSnapshot(ref, (snap) => {
+    if (!snap.exists()) return;
+    const trip = snap.data();
+    const serialized = JSON.stringify(trip);
+    if (serialized !== state.lastSyncData) {
+      state.trip = trip;
+      state.lastSyncData = serialized;
+      render();
+      setSync('synced');
+    }
+  }, (err) => {
+    console.error('Snapshot error:', err);
+    setSync('error');
+  });
+}
+
+function setSync(status) {
+  const dot = document.getElementById('syncDot');
+  const text = document.getElementById('syncText');
+  if (!dot) return;
+  dot.classList.toggle('syncing', status === 'syncing');
+  text.textContent = status === 'syncing' ? 'syncing…' : status === 'error' ? 'offline' : 'synced';
+}
+
+/* =========================================================
+   SETUP FLOW
+   ========================================================= */
+function goToStep2() {
+  const name = document.getElementById('myName').value.trim();
+  if (!name) { toast('이름을 입력해주세요'); return; }
+  state.userName = name;
+  document.getElementById('setupStep1').style.display = 'none';
+  document.getElementById('setupStep2').style.display = 'block';
+}
+
+function generateCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let c = '';
+  for (let i = 0; i < 6; i++) c += chars[Math.floor(Math.random() * chars.length)];
+  return c;
+}
+
+async function createTrip() {
+  const name = document.getElementById('tripName').value.trim();
+  const start = document.getElementById('startDate').value;
+  const end = document.getElementById('endDate').value;
+  if (!name) { toast('여행 이름을 입력해주세요'); return; }
+  if (!start || !end) { toast('날짜를 선택해주세요'); return; }
+  if (start > end) { toast('종료일이 시작일보다 빨라요'); return; }
+
+  const code = generateCode();
+  const days = [];
+  let cur = new Date(start);
+  const endD = new Date(end);
+  while (cur <= endD) {
+    days.push({ date: cur.toISOString().slice(0, 10), places: [] });
+    cur.setDate(cur.getDate() + 1);
+  }
+
+  const trip = {
+    code, name, start, end, days,
+    expenses: [],
+    members: [state.userName],
+    createdAt: Date.now(),
+  };
+
+  const ok = await saveTrip(trip);
+  if (!ok) return;
+
+  state.tripId = code;
+  state.tripCode = code;
+  saveLocal();
+  enterApp();
+}
+
+async function joinTrip() {
+  const code = document.getElementById('joinCode').value.trim().toUpperCase();
+  if (code.length < 4) { toast('코드가 너무 짧아요'); return; }
+
+  const trip = await loadTrip(code);
+  if (!trip) { toast('여행을 찾을 수 없어요'); return; }
+
+  if (!trip.members.includes(state.userName)) {
+    trip.members.push(state.userName);
+    await saveTrip(trip);
+  }
+
+  state.tripId = code;
+  state.tripCode = code;
+  saveLocal();
+  enterApp();
+}
+
+async function enterApp() {
+  document.getElementById('setupScreen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  const trip = await loadTrip(state.tripCode);
+  if (trip) {
+    state.trip = trip;
+    state.lastSyncData = JSON.stringify(trip);
+  }
+  if (state.trip && state.trip.days.length > 0) {
+    state.selectedDay = 0;
+  }
+  render();
+  subscribeToTrip(state.tripCode);
+}
+
+/* =========================================================
+   RENDER
+   ========================================================= */
+function render() {
+  if (!state.trip) return;
+  const t = state.trip;
+
+  document.getElementById('userName').textContent = state.userName;
+  document.getElementById('tripTitle').textContent = t.name;
+  document.getElementById('tripDates').textContent =
+    formatDate(t.start) + ' — ' + formatDate(t.end);
+  document.getElementById('tripCode').textContent = t.code;
+
+  const totalPlaces = t.days.reduce((s, d) => s + d.places.length, 0);
+  document.getElementById('placesCount').textContent = totalPlaces;
+  document.getElementById('expensesCount').textContent = t.expenses.length;
+
+  renderDays();
+  renderTimeline();
+  renderExpenses();
+  if (document.querySelector('.tab.active').dataset.panel === 'map') {
+    renderMap();
+  }
+}
+
+function formatDate(s) {
+  const d = new Date(s);
+  return (d.getMonth() + 1) + '월 ' + d.getDate() + '일';
+}
+
+function renderDays() {
+  const sel = document.getElementById('daySelector');
+  sel.innerHTML = '';
+  state.trip.days.forEach((d, i) => {
+    const chip = document.createElement('div');
+    chip.className = 'day-chip' + (state.selectedDay === i ? ' active' : '');
+    chip.innerHTML = `
+      <div class="day-num">Day ${i + 1}</div>
+      <div class="day-date">${formatShort(d.date)}</div>
+    `;
+    chip.onclick = () => { state.selectedDay = i; render(); };
+    sel.appendChild(chip);
+  });
+  const add = document.createElement('div');
+  add.className = 'day-chip day-chip-add';
+  add.innerHTML = '+';
+  add.onclick = openDayModal;
+  sel.appendChild(add);
+}
+
+function formatShort(s) {
+  const d = new Date(s);
+  const days = ['일','월','화','수','목','금','토'];
+  return (d.getMonth()+1) + '/' + d.getDate() + ' ' + days[d.getDay()];
+}
+
+function renderTimeline() {
+  const tl = document.getElementById('timeline');
+  tl.innerHTML = '';
+  if (state.selectedDay === null || !state.trip.days[state.selectedDay]) {
+    tl.innerHTML = '<div class="empty-state"><div class="serif-big">Day를 선택하세요</div></div>';
+    return;
+  }
+  const day = state.trip.days[state.selectedDay];
+  if (day.places.length === 0) {
+    tl.innerHTML = `
+      <div class="empty-state">
+        <span class="empty-state-emoji">🗺️</span>
+        <div class="serif-big">아직 비어있어요</div>
+        <div>가고 싶은 곳을 더해보세요</div>
+      </div>
+      <button class="add-place-btn" onclick="openPlaceModal()">＋ 장소 추가하기</button>
+    `;
+    return;
+  }
+
+  const sorted = [...day.places].sort((a,b) => (a.time||'').localeCompare(b.time||''));
+  sorted.forEach((p, i) => {
+    // 이 장소에 연결된 지출 찾기
+    const linkedExpenses = state.trip.expenses.filter(e => e.placeId === p.id);
+    const placeTotal = linkedExpenses.reduce((s, e) => s + e.amount, 0);
+
+    const card = document.createElement('div');
+    card.className = 'place-card';
+    const isLast = i === sorted.length - 1;
+    card.innerHTML = `
+      <div class="place-marker-col">
+        <div class="place-marker">${i + 1}</div>
+        ${!isLast ? '<div class="place-line"></div>' : ''}
+      </div>
+      <div class="place-content">
+        ${p.time ? `<div class="place-time">🕐 ${p.time}</div>` : ''}
+        <div class="place-name">${escapeHtml(p.name)}</div>
+        ${p.address ? `<div class="place-addr">${escapeHtml(p.address)}</div>` : ''}
+        ${p.note ? `<div class="place-note">"${escapeHtml(p.note)}"</div>` : ''}
+        ${linkedExpenses.length > 0 ? `
+          <div class="place-expenses">
+            ${linkedExpenses.map(e => `
+              <div class="place-expense-row">
+                <span class="pe-payer">${escapeHtml(e.payer)}</span>
+                <span class="pe-title">${escapeHtml(e.title)}</span>
+                <span class="pe-split">${e.splitMode === 'equal' ? '더치' : '전액'}</span>
+                <span class="pe-amount">₩${e.amount.toLocaleString()}</span>
+              </div>
+            `).join('')}
+            <div class="place-expense-total">합계 ₩${placeTotal.toLocaleString()}</div>
+          </div>
+        ` : ''}
+        <div class="place-actions">
+          <button class="place-btn expense" onclick="openExpenseModal('${p.id}')">비용</button>
+          <button class="place-btn" onclick="openInMaps(${p.lat}, ${p.lng}, '${escapeAttr(p.name)}')">길찾기</button>
+          <button class="place-btn danger" onclick="deletePlace('${p.id}')">삭제</button>
+        </div>
+      </div>
+    `;
+    tl.appendChild(card);
+  });
+
+  const btn = document.createElement('button');
+  btn.className = 'add-place-btn';
+  btn.textContent = '＋ 장소 추가하기';
+  btn.onclick = openPlaceModal;
+  tl.appendChild(btn);
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function escapeAttr(s) { return String(s).replace(/'/g, "\\'"); }
+
+/* =========================================================
+   MAP
+   ========================================================= */
+function initMap() {
+  if (state.map) return;
+  state.map = L.map('map', { zoomControl: true, attributionControl: true })
+    .setView([37.5665, 126.9780], 11);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap',
+    maxZoom: 19,
+  }).addTo(state.map);
+}
+
+function renderMap() {
+  initMap();
+  state.markers.forEach(m => state.map.removeLayer(m));
+  state.markers = [];
+  if (state.polyline) { state.map.removeLayer(state.polyline); state.polyline = null; }
+
+  if (state.selectedDay === null || !state.trip.days[state.selectedDay]) return;
+  const day = state.trip.days[state.selectedDay];
+  const sorted = [...day.places].sort((a,b) => (a.time||'').localeCompare(b.time||''));
+
+  document.getElementById('mapLegendText').textContent =
+    `Day ${state.selectedDay + 1} · ${sorted.length}곳`;
+
+  if (sorted.length === 0) {
+    document.getElementById('mapDistance').textContent = '—';
+    return;
+  }
+
+  const coords = [];
+  sorted.forEach((p, i) => {
+    const icon = L.divIcon({
+      className: 'custom-marker',
+      html: `<div style="width:32px;height:32px;background:#b8402c;color:#fdf8ee;border:2px solid #fdf8ee;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:Fraunces,serif;font-weight:600;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,0.3);">${i+1}</div>`,
+      iconSize: [32, 32],
+      iconAnchor: [16, 16],
+    });
+    const m = L.marker([p.lat, p.lng], { icon }).addTo(state.map);
+    m.bindPopup(`<strong>${escapeHtml(p.name)}</strong>${p.time?'<br/>'+p.time:''}`);
+    state.markers.push(m);
+    coords.push([p.lat, p.lng]);
+  });
+
+  if (coords.length > 1) {
+    state.polyline = L.polyline(coords, { color: '#b8402c', weight: 3, opacity: 0.7, dashArray: '6,6' }).addTo(state.map);
+    let dist = 0;
+    for (let i = 1; i < coords.length; i++) {
+      dist += haversine(coords[i-1], coords[i]);
+    }
+    document.getElementById('mapDistance').textContent =
+      dist < 1 ? (dist*1000).toFixed(0) + 'm' : dist.toFixed(1) + 'km';
+  } else {
+    document.getElementById('mapDistance').textContent = '1곳';
+  }
+
+  if (coords.length === 1) {
+    state.map.setView(coords[0], 14);
+  } else {
+    state.map.fitBounds(coords, { padding: [40, 40] });
+  }
+  setTimeout(() => state.map.invalidateSize(), 100);
+}
+
+function haversine(a, b) {
+  const R = 6371;
+  const dLat = (b[0]-a[0]) * Math.PI/180;
+  const dLng = (b[1]-a[1]) * Math.PI/180;
+  const x = Math.sin(dLat/2)**2 + Math.cos(a[0]*Math.PI/180)*Math.cos(b[0]*Math.PI/180)*Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1-x));
+}
+
+/* =========================================================
+   EXPENSES
+   ========================================================= */
+function renderExpenses() {
+  const t = state.trip;
+  const total = t.expenses.reduce((s,e) => s + e.amount, 0);
+  document.getElementById('totalAmount').textContent = '₩' + total.toLocaleString();
+
+  const members = t.members.length > 0 ? t.members : [state.userName];
+  const paid = {};
+  const owed = {};
+  members.forEach(m => { paid[m] = 0; owed[m] = 0; });
+
+  t.expenses.forEach(e => {
+    paid[e.payer] = (paid[e.payer] || 0) + e.amount;
+    if (e.splitMode === 'equal') {
+      members.forEach(m => { owed[m] = (owed[m] || 0) + e.amount / members.length; });
+    } else {
+      owed[e.payer] = (owed[e.payer] || 0) + e.amount;
+    }
+  });
+
+  const detailsEl = document.getElementById('memberDetails');
+  detailsEl.innerHTML = '';
+  members.forEach(m => {
+    const p = paid[m] || 0;
+    const o = owed[m] || 0;
+    const net = p - o;
+    const netClass = net > 0.5 ? 'positive' : net < -0.5 ? 'negative' : 'zero';
+    const netLabel = net > 0.5 ? `+₩${Math.round(net).toLocaleString()} 받을 돈`
+                   : net < -0.5 ? `-₩${Math.round(-net).toLocaleString()} 줄 돈`
+                   : '±0';
+    const card = document.createElement('div');
+    card.className = 'member-card';
+    card.innerHTML = `
+      <div class="member-card-head">
+        <span class="member-card-name">${escapeHtml(m)}</span>
+        <span class="member-card-net ${netClass}">${netLabel}</span>
+      </div>
+      <div class="member-card-rows">
+        <div class="member-stat">
+          <div class="member-stat-label">결제한 금액</div>
+          <div class="member-stat-value">₩${Math.round(p).toLocaleString()}</div>
+        </div>
+        <div class="member-stat">
+          <div class="member-stat-label">부담해야 할 몫</div>
+          <div class="member-stat-value">₩${Math.round(o).toLocaleString()}</div>
+        </div>
+      </div>
+    `;
+    detailsEl.appendChild(card);
+  });
+
+  // settlement
+  const settleEl = document.getElementById('settlement');
+  if (t.expenses.length === 0) {
+    settleEl.textContent = '아직 지출이 없어요.';
+  } else if (members.length < 2) {
+    settleEl.innerHTML = `상대방이 참여하면 정산 내역이 보여요. <strong>코드 ${t.code}</strong>를 공유하세요.`;
+  } else {
+    // compute net: net[m] = paid[m] - owed[m] (positive = should receive)
+    const net = {};
+    members.forEach(m => { net[m] = (paid[m]||0) - (owed[m]||0); });
+    const creditor = members.reduce((a,b) => net[a]>net[b]?a:b);
+    const debtor = members.reduce((a,b) => net[a]<net[b]?a:b);
+    const amt = Math.round(net[creditor]);
+    if (amt < 1) {
+      settleEl.innerHTML = '정산 완료 · 서로 공평해요 ✨';
+    } else {
+      settleEl.innerHTML = `<strong>${escapeHtml(debtor)}</strong>님이 <strong>${escapeHtml(creditor)}</strong>님에게<br/><strong>₩${amt.toLocaleString()}</strong> 정산하면 돼요.`;
+    }
+  }
+
+  // list
+  const list = document.getElementById('expenseList');
+  list.innerHTML = '';
+  if (t.expenses.length === 0) {
+    list.innerHTML = '<div class="empty-state"><span class="empty-state-emoji">💸</span><div class="serif-big">지출 기록이 없어요</div><div>＋ 버튼으로 추가해보세요</div></div>';
+    return;
+  }
+
+  const header = document.createElement('div');
+  header.className = 'expense-list-header';
+  header.textContent = `지출 내역 · ${t.expenses.length}건`;
+  list.appendChild(header);
+
+  // 장소별 그룹 매핑
+  const placeMap = {};
+  state.trip.days.forEach(d => d.places.forEach(p => { placeMap[p.id] = p.name; }));
+
+  [...t.expenses].reverse().forEach(e => {
+    const placeName = e.placeId && placeMap[e.placeId] ? placeMap[e.placeId] : null;
+    const item = document.createElement('div');
+    item.className = 'expense-item';
+    item.innerHTML = `
+      <div class="expense-info">
+        <div class="expense-title">${escapeHtml(e.title)}</div>
+        <div class="expense-meta">
+          <span class="expense-payer">${escapeHtml(e.payer)}</span>
+          <span>${e.splitMode === 'equal' ? '더치' : '전액부담'}</span>
+          ${placeName ? `<span>📍 ${escapeHtml(placeName)}</span>` : ''}
+          <span>${new Date(e.at).toLocaleDateString('ko-KR',{month:'short',day:'numeric'})}</span>
+        </div>
+      </div>
+      <div>
+        <span class="expense-amount">₩${e.amount.toLocaleString()}</span>
+        <button class="expense-delete" onclick="deleteExpense('${e.id}')">×</button>
+      </div>
+    `;
+    list.appendChild(item);
+  });
+}
+
+/* =========================================================
+   MODALS
+   ========================================================= */
+function openModal(id) { document.getElementById(id).classList.add('active'); }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+function openPlaceModal() {
+  if (state.selectedDay === null) { toast('먼저 Day를 선택하세요'); return; }
+  document.getElementById('placeSearch').value = '';
+  document.getElementById('placeTime').value = '';
+  document.getElementById('placeNote').value = '';
+  document.getElementById('placeLat').value = '';
+  document.getElementById('searchResults').style.display = 'none';
+  openModal('placeModal');
+  setTimeout(() => document.getElementById('placeSearch').focus(), 300);
+}
+
+function openDayModal() {
+  document.getElementById('newDayDate').value = '';
+  openModal('dayModal');
+}
+
+function openExpenseModal(placeId) {
+  document.getElementById('expenseTitle').value = '';
+  document.getElementById('expenseAmount').value = '';
+  document.getElementById('splitMode').value = 'equal';
+  document.getElementById('linkedPlaceId').value = placeId || '';
+
+  // split 카드 기본값 리셋
+  document.querySelectorAll('.split-card').forEach(c => c.classList.remove('active'));
+  document.querySelector('.split-card[data-split="equal"]').classList.add('active');
+
+  // 장소 연결 정보 표시
+  const info = document.getElementById('linkedPlaceInfo');
+  if (placeId) {
+    let place = null;
+    state.trip.days.forEach(d => {
+      const found = d.places.find(p => p.id === placeId);
+      if (found) place = found;
+    });
+    if (place) {
+      info.style.display = 'block';
+      document.getElementById('linkedPlaceName').textContent = place.name;
+      // 장소명을 기본 항목명으로 제안
+      document.getElementById('expenseTitle').value = place.name;
+    }
+  } else {
+    info.style.display = 'none';
+  }
+
+  const toggle = document.getElementById('payerToggle');
+  toggle.innerHTML = '';
+  const members = state.trip.members.length > 0 ? state.trip.members : [state.userName];
+  state.currentPayer = state.userName;
+  members.forEach(m => {
+    const opt = document.createElement('div');
+    opt.className = 'payer-opt' + (m === state.userName ? ' active' : '');
+    opt.textContent = m;
+    opt.onclick = () => {
+      state.currentPayer = m;
+      toggle.querySelectorAll('.payer-opt').forEach(o => o.classList.remove('active'));
+      opt.classList.add('active');
+    };
+    toggle.appendChild(opt);
+  });
+  openModal('expenseModal');
+}
+
+function pickSplit(mode) {
+  document.getElementById('splitMode').value = mode;
+  document.querySelectorAll('.split-card').forEach(c => c.classList.remove('active'));
+  document.querySelector(`.split-card[data-split="${mode}"]`).classList.add('active');
+}
+
+/* =========================================================
+   GEOCODING (Nominatim)
+   ========================================================= */
+document.getElementById('placeSearch').addEventListener('input', (e) => {
+  clearTimeout(state.searchTimeout);
+  const q = e.target.value.trim();
+  if (q.length < 2) {
+    document.getElementById('searchResults').style.display = 'none';
+    return;
+  }
+  state.searchTimeout = setTimeout(() => doSearch(q), 500);
+});
+
+async function doSearch(q) {
+  const results = document.getElementById('searchResults');
+  results.style.display = 'block';
+  results.innerHTML = '<div class="search-result"><span class="loading-spinner"></span>검색 중...</div>';
+
+  // 1차: Photon (Komoot) — CORS 열려있음, 한국어 지원
+  let items = await searchPhoton(q);
+
+  // 2차: Nominatim (OSM) fallback
+  if (!items || items.length === 0) {
+    items = await searchNominatim(q);
+  }
+
+  if (!items) {
+    results.innerHTML = '<div class="search-result" style="color:var(--accent);">검색 서버 연결 실패. 잠시 후 다시 시도해주세요.</div>';
+    return;
+  }
+
+  if (items.length === 0) {
+    results.innerHTML = '<div class="search-result" style="color:var(--ink-mute);">결과가 없어요. 더 구체적으로 검색해보세요.<br/><span style="font-size:10px;">예: "스타벅스 강남역" · "제주 성산일출봉"</span></div>';
+    return;
+  }
+
+  results.innerHTML = '';
+  items.forEach(d => {
+    const el = document.createElement('div');
+    el.className = 'search-result';
+    el.innerHTML = `<div class="search-result-name">${escapeHtml(d.name)}</div><div class="search-result-addr">${escapeHtml(d.addr || '')}</div>`;
+    el.onclick = () => pickPlace(d.name, d.addr || d.name, d.lat, d.lng);
+    results.appendChild(el);
+  });
+}
+
+async function searchPhoton(q) {
+  try {
+    const url = 'https://photon.komoot.io/api/?q=' + encodeURIComponent(q) + '&limit=8&lang=default';
+    const r = await fetch(url);
+    if (!r.ok) return null;
+    const data = await r.json();
+    if (!data.features) return [];
+    return data.features.map(f => {
+      const p = f.properties;
+      const name = p.name || p.street || q;
+      const parts = [p.street, p.district, p.city, p.state, p.country].filter(Boolean);
+      const addr = parts.length > 0 ? parts.join(', ') : (p.name || '');
+      return {
+        name,
+        addr: addr || name,
+        lat: f.geometry.coordinates[1],
+        lng: f.geometry.coordinates[0],
+      };
+    });
+  } catch (e) {
+    console.warn('Photon failed:', e);
+    return null;
+  }
+}
+
+async function searchNominatim(q) {
+  try {
+    const url = 'https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(q) + '&limit=8&accept-language=ko';
+    const r = await fetch(url);
+    if (!r.ok) return null;
+    const data = await r.json();
+    return data.map(d => ({
+      name: d.display_name.split(',')[0],
+      addr: d.display_name,
+      lat: parseFloat(d.lat),
+      lng: parseFloat(d.lon),
+    }));
+  } catch (e) {
+    console.warn('Nominatim failed:', e);
+    return null;
+  }
+}
+
+function pickPlace(name, addr, lat, lng) {
+  document.getElementById('placeName').value = name;
+  document.getElementById('placeAddr').value = addr;
+  document.getElementById('placeLat').value = lat;
+  document.getElementById('placeLng').value = lng;
+  document.getElementById('placeSearch').value = name;
+  document.getElementById('searchResults').style.display = 'none';
+}
+
+/* =========================================================
+   CRUD
+   ========================================================= */
+async function savePlace() {
+  const lat = document.getElementById('placeLat').value;
+  const lng = document.getElementById('placeLng').value;
+  if (!lat) { toast('장소를 선택해주세요'); return; }
+  const place = {
+    id: 'p_' + Date.now() + '_' + Math.random().toString(36).slice(2,6),
+    name: document.getElementById('placeName').value,
+    address: document.getElementById('placeAddr').value,
+    lat: parseFloat(lat),
+    lng: parseFloat(lng),
+    time: document.getElementById('placeTime').value,
+    note: document.getElementById('placeNote').value.trim(),
+  };
+  state.trip.days[state.selectedDay].places.push(place);
+  await saveTrip(state.trip);
+  closeModal('placeModal');
+  render();
+  toast('추가됨');
+}
+
+async function deletePlace(id) {
+  const linkedCount = state.trip.expenses.filter(e => e.placeId === id).length;
+  const msg = linkedCount > 0
+    ? `이 장소를 지울까요?\n연결된 지출 ${linkedCount}건도 함께 삭제됩니다.`
+    : '이 장소를 지울까요?';
+  if (!confirm(msg)) return;
+  state.trip.days[state.selectedDay].places =
+    state.trip.days[state.selectedDay].places.filter(p => p.id !== id);
+  // 연결된 지출도 제거
+  state.trip.expenses = state.trip.expenses.filter(e => e.placeId !== id);
+  await saveTrip(state.trip);
+  render();
+}
+
+async function saveDay() {
+  const date = document.getElementById('newDayDate').value;
+  if (!date) { toast('날짜를 선택하세요'); return; }
+  if (state.trip.days.some(d => d.date === date)) { toast('이미 있는 날짜예요'); return; }
+  state.trip.days.push({ date, places: [] });
+  state.trip.days.sort((a,b) => a.date.localeCompare(b.date));
+  state.trip.start = state.trip.days[0].date;
+  state.trip.end = state.trip.days[state.trip.days.length-1].date;
+  await saveTrip(state.trip);
+  closeModal('dayModal');
+  render();
+}
+
+async function saveExpense() {
+  const title = document.getElementById('expenseTitle').value.trim();
+  const amount = parseInt(document.getElementById('expenseAmount').value);
+  if (!title) { toast('항목을 입력하세요'); return; }
+  if (!amount || amount < 1) { toast('금액을 입력하세요'); return; }
+  const placeId = document.getElementById('linkedPlaceId').value || null;
+  const expense = {
+    id: 'e_' + Date.now() + '_' + Math.random().toString(36).slice(2,6),
+    title, amount,
+    payer: state.currentPayer,
+    splitMode: document.getElementById('splitMode').value,
+    placeId,
+    at: Date.now(),
+  };
+  state.trip.expenses.push(expense);
+  await saveTrip(state.trip);
+  closeModal('expenseModal');
+  render();
+  toast('추가됨');
+}
+
+async function deleteExpense(id) {
+  if (!confirm('이 지출을 지울까요?')) return;
+  state.trip.expenses = state.trip.expenses.filter(e => e.id !== id);
+  await saveTrip(state.trip);
+  render();
+}
+
+/* =========================================================
+   UTILITIES
+   ========================================================= */
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+function copyTripCode() {
+  const code = state.trip.code;
+  const text = `${state.trip.name}에 초대합니다 🌱\n코드: ${code}`;
+  if (navigator.share) {
+    navigator.share({ title: 'Voyage', text }).catch(()=>{});
+  } else if (navigator.clipboard) {
+    navigator.clipboard.writeText(code);
+    toast('코드 복사됨: ' + code);
+  }
+}
+
+function openInMaps(lat, lng, name) {
+  const ua = navigator.userAgent;
+  if (/iPhone|iPad|iPod/.test(ua)) {
+    window.open(`maps://maps.apple.com/?ll=${lat},${lng}&q=${encodeURIComponent(name)}`);
+  } else {
+    window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`);
+  }
+}
+
+/* =========================================================
+   TAB NAVIGATION
+   ========================================================= */
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    const panelName = tab.dataset.panel;
+    document.querySelector(`.panel[data-panel="${panelName}"]`).classList.add('active');
+    if (panelName === 'map') {
+      setTimeout(() => { initMap(); renderMap(); }, 50);
+    }
+  });
+});
+
+document.getElementById('fab').addEventListener('click', () => {
+  const active = document.querySelector('.tab.active').dataset.panel;
+  if (active === 'itinerary' || active === 'map') openPlaceModal();
+  else if (active === 'expenses') openExpenseModal();
+});
+
+/* =========================================================
+   BOOT
+   ========================================================= */
+function waitForFirebase() {
+  return new Promise((resolve) => {
+    if (window.fbReady) return resolve();
+    window.addEventListener('firebase-ready', resolve, { once: true });
+  });
+}
+
+(async function boot() {
+  await waitForFirebase();
+
+  const session = loadLocal();
+  if (session && session.tripCode) {
+    state.userName = session.userName;
+    state.tripCode = session.tripCode;
+    state.tripId = session.tripId;
+    const trip = await loadTrip(session.tripCode);
+    if (trip) {
+      state.trip = trip;
+      state.lastSyncData = JSON.stringify(trip);
+      // make sure current user is in members
+      if (!trip.members.includes(state.userName)) {
+        trip.members.push(state.userName);
+        await saveTrip(trip);
+      }
+      if (trip.days.length > 0) state.selectedDay = 0;
+      document.getElementById('setupScreen').style.display = 'none';
+      document.getElementById('app').style.display = 'flex';
+      render();
+      subscribeToTrip(state.tripCode);
+      return;
+    } else {
+      clearLocal();
+    }
+  }
+  // Setup screen is already visible by default
+})();
+</script>
+</body>
+</html>
